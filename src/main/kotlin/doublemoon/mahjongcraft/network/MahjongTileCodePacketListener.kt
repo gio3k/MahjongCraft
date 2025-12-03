@@ -69,18 +69,20 @@ object MahjongTileCodePacketListener : CustomPacketListener {
     ) {
         MahjongTileCodePacket(byteBuf).apply {
             //ClientWorld 並沒有 getEntity(uuid) 的方法, 但是 ServerWorld 就有 (wat??)
-            kotlin.runCatching {
-                client.world?.getEntityById(id) as MahjongTileEntity? ?: return@apply
-            }.fold(
-                onSuccess = {
-                    it.code = this.code
-                },
-                onFailure = {
-                    //因為包的處理不在主線程上, 所以有機會在 getEntityById 時,
-                    // 物體已經消失然後造成 IndexOutOfBoundsException 錯誤, 直接把這個錯誤忽略
-                    if (it !is IndexOutOfBoundsException) it.printStackTrace()
-                }
-            )
+            client.execute {
+                kotlin.runCatching {
+                    client.world?.getEntityById(id) as MahjongTileEntity? ?: return@execute
+                }.fold(
+                    onSuccess = {
+                        it.code = this.code
+                    },
+                    onFailure = {
+                        //因為包的處理不在主線程上, 所以有機會在 getEntityById 時,
+                        // 物體已經消失然後造成 IndexOutOfBoundsException 錯誤, 直接把這個錯誤忽略
+                        if (it !is IndexOutOfBoundsException) it.printStackTrace()
+                    }
+                )
+            }
         }
     }
 
